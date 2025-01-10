@@ -218,8 +218,8 @@ process STEP4b_mapping {
 process STEP4b_addtags {
    
     input:
-    path(bam), emit: bam
-    path(bai), emit: bai
+    path(bam)
+    path(bai)
  	
     output:
     path 'molecules.tags.bam'	, emit: bam
