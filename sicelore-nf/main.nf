@@ -3,9 +3,11 @@
 nextflow.enable.dsl = 2
 
 workflow {
+    juncbed = Channel.fromPath(params.juncbed)
+
     Channel.fromPath(params.fastqdir) | STEP1_readscan
     STEP1_validbarcodes(STEP1_readscan.out.scancsv)
-    STEP2_mapping(STEP1_readscan.out.fastqgz)
+    STEP2_mapping(STEP1_readscan.out.fastqgz, juncbed)
     STEP3_umis(STEP2_mapping.out.mappingbam)
 
     // step 4a (barcoded reads)
@@ -32,7 +34,7 @@ process STEP1_readscan {
     
     """
     mkdir ./passed
-    $params.java -jar $params.javaXmx $params.nanopore scanfastq -d fastqdir -o ./passed --ncpu $params.max_cpus --bcEditDistance 1 --compress
+    $params.java -jar $params.javaXmx $params.nanopore scanfastq -d $fastqdir -o ./passed --ncpu $params.max_cpus --bcEditDistance 1 --compress
     find ./passed/passed/ -type f -name '*' | xargs pigz -dc |  pigz > fastq_pass.fastq.gz
     """
 }
@@ -56,6 +58,7 @@ process STEP2_mapping {
    
     input:
     path(fastqgz)
+    path(juncbed)
 
     output:
     path 'passed.bam'	, emit: mappingbam
@@ -64,7 +67,7 @@ process STEP2_mapping {
     publishDir "${params.outdir}/${params.mappingdir}", mode: 'symlink'
     
     """
-    $params.minimap2 -ax splice -uf --sam-hit-only -t $params.max_cpus --junc-bed $params.juncbed $params.minimapfasta $fastqgz | $params.samtools view -bS -@ $params.max_cpus - | $params.samtools sort -m 2G -@ $params.max_cpus -o passed.bam -&& $params.samtools index passed.bam
+    $params.minimap2 -ax splice -uf --sam-hit-only -t $params.max_cpus --junc-bed $juncbed $params.minimapfasta $fastqgz | $params.samtools view -bS -@ $params.max_cpus - | $params.samtools sort -m 2G -@ $params.max_cpus -o passed.bam -&& $params.samtools index passed.bam
     """
 }
 
@@ -192,15 +195,14 @@ process STEP4b_mapping {
     
     input:
     path(dedup)
+    path(juncbed)
  
     output:
     path 'molecules.bam'    , emit: bam
     path 'molecules.bam.bai', emit: bai
 
-    //publishDir "${params.outdir}/${params.matrixconsdir}", mode: 'copy'
- 	
     """
-    $params.minimap2 -ax splice -uf --sam-hit-only -t $params.max_cpus --junc-bed $params.juncbed $params.minimapfasta $dedup | $params.samtools view -bS -@ $params.max_cpus - | $params.samtools sort -m 2G -@ $params.max_cpus -o molecules.bam -&& $params.samtools index molecules.bam
+    $params.minimap2 -ax splice -uf --sam-hit-only -t $params.max_cpus --junc-bed $juncbed $params.minimapfasta $dedup | $params.samtools view -bS -@ $params.max_cpus - | $params.samtools sort -m 2G -@ $params.max_cpus -o molecules.bam -&& $params.samtools index molecules.bam
     """
 }
 
