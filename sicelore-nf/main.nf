@@ -16,7 +16,7 @@ workflow {
     STEP4a_matrix(STEP1_validbarcodes.out.csv, STEP3_umis.out.parsedbam, refflat)
 
     // step 4b (consensus molecules)
-    STEP4b_addsequence(STEP3_umis.out.parsedbam, STEP1_readscan.out.fastqgz, minimapfasta)
+    STEP4b_addsequence(STEP3_umis.out.parsedbam, STEP1_readscan.out.fastqgz)
     chrs = STEP4b_getchrs(STEP4b_addsequence.out.parsedbamseq) | splitText | map{it -> it.trim()}
     STEP4b_splitbam(chrs, STEP4b_addsequence.out.parsedbamseq, STEP4b_addsequence.out.parsedbamseqbai) | STEP4b_consensus | STEP4b_concatenate | collectFile | STEP4b_deduplicate
     
