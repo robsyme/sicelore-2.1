@@ -3,7 +3,7 @@
 nextflow.enable.dsl = 2
 
 workflow {
-    STEP1_readscan()
+    Channel.fromPath(params.fastqdir) | STEP1_readscan
     STEP1_validbarcodes(STEP1_readscan.out.scancsv)
     STEP2_mapping(STEP1_readscan.out.fastqgz)
     STEP3_umis(STEP2_mapping.out.mappingbam)
@@ -19,6 +19,9 @@ workflow {
 }
 
 process STEP1_readscan {
+
+    input:
+    path(fastqdir)
     
     output:
     path './passed/ReadScanner.html'        , emit: scanhtml
@@ -29,7 +32,7 @@ process STEP1_readscan {
     
     """
     mkdir ./passed
-    $params.java -jar $params.javaXmx $params.nanopore scanfastq -d $params.fastqdir -o ./passed --ncpu $params.max_cpus --bcEditDistance 1 --compress
+    $params.java -jar $params.javaXmx $params.nanopore scanfastq -d fastqdir -o ./passed --ncpu $params.max_cpus --bcEditDistance 1 --compress
     find ./passed/passed/ -type f -name '*' | xargs pigz -dc |  pigz > fastq_pass.fastq.gz
     """
 }
