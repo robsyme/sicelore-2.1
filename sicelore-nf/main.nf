@@ -18,7 +18,10 @@ workflow {
     // step 4b (consensus molecules)
     STEP4b_addsequence(STEP3_umis.out.parsedbam, STEP1_readscan.out.fastqgz, minimapfasta)
     chrs = STEP4b_getchrs(STEP4b_addsequence.out.parsedbamseq) | splitText | map{it -> it.trim()}
-    STEP4b_splitbam(chrs, STEP4b_addsequence.out.parsedbamseq, STEP4b_addsequence.out.parsedbamseqbai) | STEP4b_consensus | STEP4b_concatenate | collectFile | STEP4b_deduplicate | STEP4b_mapping | STEP4b_addtags | STEP4b_addgenes
+    STEP4b_splitbam(chrs, STEP4b_addsequence.out.parsedbamseq, STEP4b_addsequence.out.parsedbamseqbai) | STEP4b_consensus | STEP4b_concatenate | collectFile | STEP4b_deduplicate
+    
+    STEP4b_mapping(STEP4b_deduplicate.out, juncbed, minimapfasta) | STEP4b_addtags
+    STEP4b_addgenes(STEP4b_addtags.out.bam, STEP4b_addtags.out.bai, refflat)
     STEP4b_matrix(STEP1_validbarcodes.out.csv, STEP4b_addgenes.out.bam, refflat)
 }
 
@@ -215,8 +218,8 @@ process STEP4b_mapping {
 process STEP4b_addtags {
    
     input:
-    path(bam)
-    path(bai)
+    path(bam), emit: bam
+    path(bai), emit: bai
  	
     output:
     path 'molecules.tags.bam'	, emit: bam
